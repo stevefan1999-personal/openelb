@@ -102,11 +102,11 @@ func nodeInternalAndExternalIP(obj runtime.Object) (externalIP, internalIP strin
 
 // Update implements EventHandler
 func (e *EnqueueRequestForNode) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	if evt.MetaOld == nil {
+	if evt.ObjectOld == nil {
 		nodeEnqueueLog.Error(nil, "UpdateEvent received with no old metadata", "event", evt)
 	}
 
-	if evt.MetaNew == nil {
+	if evt.ObjectNew == nil {
 		nodeEnqueueLog.Error(nil, "UpdateEvent received with no new metadata", "event", evt)
 	}
 
@@ -182,11 +182,11 @@ func (e *EnqueueRequestForDeAndDs) Create(evt event.CreateEvent, q workqueue.Rat
 
 // Update implements EventHandler
 func (e *EnqueueRequestForDeAndDs) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
-	if evt.MetaOld == nil {
+	if evt.ObjectOld == nil {
 		deAndDsEnqueueLog.Error(nil, "UpdateEvent received with no old metadata", "event", evt)
 	}
 
-	if evt.MetaNew == nil {
+	if evt.ObjectNew == nil {
 		deAndDsEnqueueLog.Error(nil, "UpdateEvent received with no new metadata", "event", evt)
 	}
 

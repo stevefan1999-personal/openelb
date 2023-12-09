@@ -2,12 +2,12 @@ package util
 
 import (
 	"context"
+	"net"
+	"os"
+
 	"github.com/openelb/openelb/pkg/constant"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"net"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -55,8 +55,8 @@ func GetNodeName() string {
 	return os.Getenv(constant.EnvNodeName)
 }
 
-func DutyOfCNI(metaOld metav1.Object, metaNew metav1.Object) bool {
-	_, okNew := metaNew.GetLabels()[constant.OpenELBCNI]
+func DutyOfCNI(metaOld metav1.Object, ObjectNew metav1.Object) bool {
+	_, okNew := ObjectNew.GetLabels()[constant.OpenELBCNI]
 
 	if metaOld == nil {
 		return okNew
@@ -73,11 +73,8 @@ func DutyOfCNI(metaOld metav1.Object, metaNew metav1.Object) bool {
 
 type CheckFn func() bool
 
-func Check(ctx context.Context, c client.Client, obj runtime.Object, f CheckFn) bool {
-	key, err := client.ObjectKeyFromObject(obj)
-	if err != nil {
-		return false
-	}
+func Check(ctx context.Context, c client.Client, obj client.Object, f CheckFn) bool {
+	key := client.ObjectKeyFromObject(obj)
 
 	if err := c.Get(ctx, key, obj); err != nil {
 		return false
@@ -88,7 +85,7 @@ func Check(ctx context.Context, c client.Client, obj runtime.Object, f CheckFn) 
 
 type CreateFn func() error
 
-func Create(ctx context.Context, c client.Client, obj runtime.Object, f CreateFn) error {
+func Create(ctx context.Context, c client.Client, obj client.Object, f CreateFn) error {
 	err := f()
 	if err != nil {
 		return err

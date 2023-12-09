@@ -112,16 +112,16 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	//endpoints
 	ep := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return r.shouldReconcileEP(e.MetaNew)
+			return r.shouldReconcileEP(e.ObjectNew)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return r.shouldReconcileEP(e.Meta)
+			return r.shouldReconcileEP(e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return r.shouldReconcileEP(e.Meta)
+			return r.shouldReconcileEP(e.Object)
 		},
 	}
-	err = ctl.Watch(&source.Kind{Type: &corev1.Endpoints{}}, &handler.EnqueueRequestForObject{}, ep)
+	err = ctl.Watch(source.Kind(mgr.GetCache(), &corev1.Endpoints{}), &handler.EnqueueRequestForObject{}, ep)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 	}
-	err = ctl.Watch(&source.Kind{Type: &v1alpha2.BgpConf{}}, &EnqueueRequestForNode{Client: r.Client}, bp)
+	err = ctl.Watch(source.Kind(mgr.GetCache(), &v1alpha2.BgpConf{}), &EnqueueRequestForNode{Client: r.Client}, bp)
 	if err != nil {
 		return err
 	}
@@ -166,7 +166,7 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return false
 		},
 	}
-	err = ctl.Watch(&source.Kind{Type: &corev1.Node{}}, &EnqueueRequestForNode{Client: r.Client}, np)
+	err = ctl.Watch(source.Kind(mgr.GetCache(), &corev1.Node{}), &EnqueueRequestForNode{Client: r.Client}, np)
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	dedsp := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Maybe Deployment or DaemonSet was modified, so both should be looked at
-			return r.shouldReconcileDeDs(e.MetaNew) || r.shouldReconcileDeDs(e.MetaOld)
+			return r.shouldReconcileDeDs(e.ObjectNew) || r.shouldReconcileDeDs(e.ObjectOld)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
 			return r.shouldReconcileDeDs(e.Meta)
@@ -276,7 +276,7 @@ const (
 	DelLoadBalancerFailedMsg = "speaker del loadbalancer failed, err=%v"
 )
 
-func (r *ServiceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *ServiceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var (
 		result ipam.IPAMResult
 	)
@@ -285,7 +285,7 @@ func (r *ServiceReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	log.Info("setup openelb service")
 
 	svc := &corev1.Service{}
-	err := r.Get(context.TODO(), req.NamespacedName, svc)
+	err := r.Get(ctx, req.NamespacedName, svc)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil

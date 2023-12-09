@@ -148,7 +148,8 @@ func (r *ServiceReconciler) newProxyPoTepl(svc *corev1.Service) *corev1.PodTempl
 
 // User can config NodeProxy by ConfigMap to specify the proxy and forward images
 // If the ConfigMap exists and the configuration is set, use it,
-// 	otherwise, use the default image got from constants.
+//
+//	otherwise, use the default image got from constants.
 func (r *ServiceReconciler) getNPConfig() (*corev1.ConfigMap, error) {
 	NPCfgName := types.NamespacedName{Namespace: util.EnvNamespace(), Name: constant.OpenELBImagesConfigMap}
 	cm := &corev1.ConfigMap{}

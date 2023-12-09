@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/openelb/openelb/pkg/log"
@@ -65,11 +66,12 @@ func main() {
 }
 
 // At the moment, the agent has no tasks to do, but it may
-//be needed for future extensions, so it is kept here.
+// be needed for future extensions, so it is kept here.
 type Fake struct {
 }
 
-func (f Fake) Start(stopCh <-chan struct{}) error {
-	<-stopCh
+func (f Fake) Start(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	cancel()
 	return nil
 }

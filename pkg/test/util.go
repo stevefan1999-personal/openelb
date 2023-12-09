@@ -2,13 +2,14 @@ package test
 
 import (
 	"context"
-	. "github.com/onsi/ginkgo"
+	"math/rand"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openelb/openelb/pkg/manager/client"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"math/rand"
-	"time"
 )
 
 // SetupTest will set up a testing environment.

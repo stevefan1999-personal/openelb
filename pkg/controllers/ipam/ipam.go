@@ -113,13 +113,13 @@ func SetupIPAM(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).Named(name).
 		For(&networkv1alpha2.Eip{}).WithEventFilter(predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			if util.DutyOfCNI(nil, e.Meta) {
+			if util.DutyOfCNI(nil, e.Object) {
 				return false
 			}
 			return true
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			if util.DutyOfCNI(e.MetaOld, e.MetaNew) {
+			if util.DutyOfCNI(e.ObjectOld, e.ObjectNew) {
 				return false
 			}
 
@@ -143,10 +143,10 @@ func SetupIPAM(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=network.kubesphere.io,resources=eips/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;update;patch
 
-func (i *IPAM) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (i *IPAM) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	eip := &networkv1alpha2.Eip{}
 
-	err := i.Get(context.TODO(), req.NamespacedName, eip)
+	err := i.Get(ctx, req.NamespacedName, eip)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return ctrl.Result{}, nil

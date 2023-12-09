@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/netip"
 	"strings"
 	"sync"
 
@@ -80,8 +81,8 @@ func newARPSpeaker(ifi *net.Interface) (*arpSpeaker, error) {
 	return ret, nil
 }
 
-//The source mac address must be on the network card, otherwise arp spoof could drop you packets.
-func generateArp(intfHW net.HardwareAddr, op arp.Operation, srcHW net.HardwareAddr, srcIP net.IP, dstHW net.HardwareAddr, dstIP net.IP) ([]byte, error) {
+// The source mac address must be on the network card, otherwise arp spoof could drop you packets.
+func generateArp(intfHW net.HardwareAddr, op arp.Operation, srcHW net.HardwareAddr, srcIP netip.Addr, dstHW net.HardwareAddr, dstIP netip.Addr) ([]byte, error) {
 	pkt, err := arp.NewPacket(op, srcHW, srcIP, dstHW, dstIP)
 	if err != nil {
 		return nil, err
@@ -107,8 +108,8 @@ func generateArp(intfHW net.HardwareAddr, op arp.Operation, srcHW net.HardwareAd
 	return fb, err
 }
 
-func (a *arpSpeaker) resolveIP(nodeIP net.IP) (hwAddr net.HardwareAddr, err error) {
-	routers, err := netlink.RouteGet(nodeIP)
+func (a *arpSpeaker) resolveIP(nodeIP netip.Addr) (hwAddr net.HardwareAddr, err error) {
+	routers, err := netlink.RouteGet(nodeIP.AsSlice())
 	if err != nil {
 		return nil, err
 	}
@@ -123,9 +124,9 @@ func (a *arpSpeaker) resolveIP(nodeIP net.IP) (hwAddr net.HardwareAddr, err erro
 	} else {
 		//Resolve mac
 		for i := 0; i < 3; i++ {
-			hwAddr, _, err = arping.PingOverIface(nodeIP, *iface)
+			hwAddr, _, err = arping.PingOverIface(nodeIP.AsSlice(), *iface)
 			if err != nil {
-				hwAddr, _, err = arping.Ping(nodeIP)
+				hwAddr, _, err = arping.Ping(nodeIP.AsSlice())
 				if err != nil {
 					continue
 				} else {
@@ -144,7 +145,7 @@ func (a *arpSpeaker) resolveIP(nodeIP net.IP) (hwAddr net.HardwareAddr, err erro
 	return nil, err
 }
 
-func (a *arpSpeaker) gratuitous(ip, nodeIP net.IP) error {
+func (a *arpSpeaker) gratuitous(ip, nodeIP netip.Addr) error {
 	if a.getMac(ip.String()) != nil {
 		return nil
 	}
@@ -225,7 +226,12 @@ func (a *arpSpeaker) setNextHopFromIPRange(svcIP, cidr string) error {
 		// convert back to net.IP
 		nexthop := make(net.IP, 4)
 		binary.BigEndian.PutUint32(nexthop, i)
-		hwAddr, err := a.resolveIP(nexthop)
+		nexthopAddr, ok := netip.AddrFromSlice(nexthop)
+		if !ok {
+			a.logger.Error(err, "arp: could not resolve ", "ip", nexthop)
+			continue
+		}
+		hwAddr, err := a.resolveIP(nexthopAddr)
 		if err != nil {
 			a.logger.Error(err, "arp: could not resolve ", "ip", nexthop)
 			continue
@@ -237,6 +243,7 @@ func (a *arpSpeaker) setNextHopFromIPRange(svcIP, cidr string) error {
 		if err == nil {
 			return nil
 		}
+
 	}
 	return err
 }
@@ -246,7 +253,16 @@ func (a *arpSpeaker) setBalancer(ip string, nexthops []string) error {
 		metrics.InitLayer2Metrics(ip)
 	}
 
-	if err := a.gratuitous(net.ParseIP(ip), net.ParseIP(nexthops[0])); err != nil {
+	originIp, err := netip.ParseAddr(ip)
+	if err != nil {
+		return err
+	}
+	nodeIp, err := netip.ParseAddr(nexthops[0])
+	if err != nil {
+		return err
+	}
+
+	if err := a.gratuitous(originIp, nodeIp); err != nil {
 		return err
 	}
 

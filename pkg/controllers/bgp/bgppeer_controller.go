@@ -191,7 +191,7 @@ func (r BgpPeerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				oldPeer := e.ObjectOld.(*v1alpha2.BgpPeer)
 				newPeer := e.ObjectNew.(*v1alpha2.BgpPeer)
-				if !util.DutyOfCNI(e.MetaOld, e.MetaNew) {
+				if !util.DutyOfCNI(e.ObjectNew, e.ObjectNew) {
 					if !reflect.DeepEqual(oldPeer.DeletionTimestamp, newPeer.DeletionTimestamp) {
 						return true
 					}

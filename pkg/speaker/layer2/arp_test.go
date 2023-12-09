@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/j-keck/arping"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/openelb/openelb/pkg/leader-elector"
 	"github.com/openelb/openelb/pkg/speaker"

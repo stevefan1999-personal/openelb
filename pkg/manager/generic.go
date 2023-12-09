@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	nc "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 type GenericOptions struct {
@@ -39,8 +40,8 @@ func NewManager(cfg *rest.Config, options *GenericOptions) (ctrl.Manager, error)
 		Scheme: scheme,
 	}
 	if options != nil {
-		opts.Port = options.WebhookPort
-		opts.MetricsBindAddress = options.MetricsAddr
+		opts.WebhookServer = webhook.NewServer(webhook.Options{Port: options.WebhookPort})
+		opts.Metrics.BindAddress = options.MetricsAddr
 	}
 	result, err := ctrl.NewManager(cfg, opts)
 

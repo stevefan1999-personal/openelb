@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (e Eip) IPToOrdinal(ip net.IP) int {
@@ -170,21 +171,21 @@ func (e Eip) IsOverlap(eip Eip) bool {
 	return true
 }
 
-func (e Eip) ValidateCreate() error {
+func (e Eip) ValidateCreate() (admission.Warnings, error) {
 	_, _, err := e.GetSize()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	eips := EipList{}
 	err = client.Client.List(context.Background(), &eips)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	existDefaultEip := false
 	for _, eip := range eips.Items {
 		if e.IsOverlap(eip) {
-			return fmt.Errorf("eip address overlap with %s", eip.Name)
+			return nil, fmt.Errorf("eip address overlap with %s", eip.Name)
 		}
 		if validate.HasOpenELBDefaultEipAnnotation(eip.Annotations) {
 			existDefaultEip = true
@@ -193,27 +194,27 @@ func (e Eip) ValidateCreate() error {
 
 	if e.Spec.Protocol == constant.OpenELBProtocolLayer2 {
 		if e.Spec.Interface == "" {
-			return fmt.Errorf("field spec.interface should not be empty")
+			return nil, fmt.Errorf("field spec.interface should not be empty")
 		}
 	}
 	if validate.HasOpenELBDefaultEipAnnotation(e.Annotations) && existDefaultEip {
-		return fmt.Errorf("already exists a default EIP")
+		return nil, fmt.Errorf("already exists a default EIP")
 	}
-	return nil
+	return nil, nil
 }
 
-func (e Eip) ValidateUpdate(old runtime.Object) error {
+func (e Eip) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	oldE := old.(*Eip)
 	if !reflect.DeepEqual(e.Spec, oldE.Spec) {
 		if e.Spec.Disable == oldE.Spec.Disable {
-			return fmt.Errorf("only allow modify field disable")
+			return nil, fmt.Errorf("only allow modify field disable")
 		}
 	}
-	return nil
+	return nil, nil
 }
 
-func (e Eip) ValidateDelete() error {
-	return nil
+func (e Eip) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 func (e Eip) SetupWebhookWithManager(mgr ctrl.Manager) error {
